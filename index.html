@@ -305,6 +305,24 @@
           <div class="no-data" id="noUnmatchData">未処理データはありません</div>
         </div>
       </div>
+
+      <!-- 取り込みデータ一覧 -->
+      <div class="card">
+        <div class="card-title">取り込みデータ一覧</div>
+        <div class="table-container" style="max-height: 600px;">
+          <table id="resultTable">
+            <thead>
+              <tr>
+                <th>商品管理番号</th>
+                <th>すべての情報</th>
+                <th>数量</th>
+              </tr>
+            </thead>
+            <tbody id="resultBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1276,6 +1294,20 @@
         }
       } else {
         noData.style.display = "block";
+      }
+
+      // 取り込みデータ一覧表示
+      const resultBody = document.getElementById("resultBody");
+      resultBody.innerHTML = "";
+
+      for (const row of resultData) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(row.productId)}</td>
+          <td>${escapeHtml(row.sku)}</td>
+          <td>${row.quantity}</td>
+        `;
+        resultBody.appendChild(tr);
       }
 
       results.classList.add("show");

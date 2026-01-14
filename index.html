@@ -215,6 +215,19 @@
       color: #95a5a6;
     }
 
+    .unprocessed-row {
+      background-color: #fdecea !important;
+    }
+
+    .unprocessed-row:hover {
+      background-color: #f9d6d2 !important;
+    }
+
+    .status-unprocessed {
+      color: #e74c3c;
+      font-weight: bold;
+    }
+
     .download-area {
       margin-top: 20px;
     }
@@ -317,6 +330,7 @@
                 <th>商品名</th>
                 <th>すべての情報</th>
                 <th>数量</th>
+                <th>状態</th>
               </tr>
             </thead>
             <tbody id="salesBody">
@@ -1302,12 +1316,23 @@
       salesBody.innerHTML = "";
 
       for (const item of salesData) {
+        // この行が未処理データに含まれているかチェック
+        const isUnprocessed = unmatchedData.some(u =>
+          u.productId === item.productId &&
+          u.sku === item.sku &&
+          u.quantity === item.quantity
+        );
+
         const tr = document.createElement("tr");
+        if (isUnprocessed) {
+          tr.classList.add("unprocessed-row");
+        }
         tr.innerHTML = `
           <td>${escapeHtml(item.productId)}</td>
           <td>${escapeHtml(item.productName)}</td>
           <td>${escapeHtml(item.sku)}</td>
           <td>${item.quantity}</td>
+          <td class="${isUnprocessed ? 'status-unprocessed' : ''}">${isUnprocessed ? '未処理' : ''}</td>
         `;
         salesBody.appendChild(tr);
       }

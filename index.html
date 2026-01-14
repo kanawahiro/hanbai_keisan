@@ -305,6 +305,25 @@
           <div class="no-data" id="noUnmatchData">未処理データはありません</div>
         </div>
       </div>
+
+      <!-- 取り込みデータ一覧（販売実績CSVの内容をそのまま表示） -->
+      <div class="card">
+        <div class="card-title">取り込みデータ一覧</div>
+        <div class="table-container" style="max-height: 600px;">
+          <table id="salesTable">
+            <thead>
+              <tr>
+                <th>商品管理番号</th>
+                <th>商品名</th>
+                <th>すべての情報</th>
+                <th>数量</th>
+              </tr>
+            </thead>
+            <tbody id="salesBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1276,6 +1295,21 @@
         }
       } else {
         noData.style.display = "block";
+      }
+
+      // 取り込みデータ一覧表示（salesDataをそのまま表示）
+      const salesBody = document.getElementById("salesBody");
+      salesBody.innerHTML = "";
+
+      for (const item of salesData) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(item.productId)}</td>
+          <td>${escapeHtml(item.productName)}</td>
+          <td>${escapeHtml(item.sku)}</td>
+          <td>${item.quantity}</td>
+        `;
+        salesBody.appendChild(tr);
       }
 
       results.classList.add("show");

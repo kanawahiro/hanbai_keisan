@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>販売実績集計ツール</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 30px;
+      font-size: 1.8rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      padding: 25px;
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      color: #34495e;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #3498db;
+    }
+
+    .upload-area {
+      border: 2px dashed #bdc3c7;
+      border-radius: 8px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: #fafafa;
+    }
+
+    .upload-area:hover,
+    .upload-area.dragover {
+      border-color: #3498db;
+      background: #ebf5fb;
+    }
+
+    .upload-area p {
+      color: #7f8c8d;
+      margin-bottom: 10px;
+    }
+
+    .upload-area .icon {
+      font-size: 3rem;
+      color: #bdc3c7;
+      margin-bottom: 10px;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .file-info {
+      margin-top: 15px;
+      padding: 10px 15px;
+      background: #e8f6f3;
+      border-radius: 5px;
+      color: #1e8449;
+      display: none;
+    }
+
+    .file-info.show {
+      display: block;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 30px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: #3498db;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #2980b9;
+    }
+
+    .btn-primary:disabled {
+      background: #bdc3c7;
+      cursor: not-allowed;
+    }
+
+    .btn-success {
+      background: #27ae60;
+      color: #fff;
+    }
+
+    .btn-success:hover {
+      background: #1e8449;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .action-area {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .results {
+      display: none;
+    }
+
+    .results.show {
+      display: block;
+    }
+
+    .stats {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .stat-item {
+      flex: 1;
+      min-width: 150px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 5px;
+      text-align: center;
+    }
+
+    .stat-item .number {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
+    .stat-item .label {
+      font-size: 0.9rem;
+      color: #7f8c8d;
+    }
+
+    .stat-item.success .number {
+      color: #27ae60;
+    }
+
+    .stat-item.warning .number {
+      color: #e67e22;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid #ecf0f1;
+    }
+
+    th {
+      background: #34495e;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+    }
+
+    .table-container {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ecf0f1;
+      border-radius: 5px;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 30px;
+      color: #95a5a6;
+    }
+
+    .download-area {
+      margin-top: 20px;
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.4rem;
+      }
+
+      .stats {
+        flex-direction: column;
+      }
+
+      .btn-group {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>販売実績集計ツール</h1>
+
+    <!-- アップロードエリア -->
+    <div class="card">
+      <div class="card-title">販売実績CSVをアップロード</div>
+      <div class="upload-area" id="uploadArea">
+        <div class="icon">📁</div>
+        <p>ここにファイルをドラッグ＆ドロップ</p>
+        <p>または クリックして選択</p>
+      </div>
+      <input type="file" id="fileInput" accept=".csv">
+      <div class="file-info" id="fileInfo"></div>
+    </div>
+
+    <!-- 集計実行ボタン -->
+    <div class="action-area">
+      <button class="btn btn-primary" id="executeBtn" disabled>集計実行</button>
+    </div>
+
+    <!-- 結果エリア -->
+    <div class="results" id="results">
+      <div class="card">
+        <div class="card-title">集計結果</div>
+        <div class="stats">
+          <div class="stat-item">
+            <div class="number" id="totalCount">0</div>
+            <div class="label">処理件数</div>
+          </div>
+          <div class="stat-item success">
+            <div class="number" id="matchCount">0</div>
+            <div class="label">マッチ</div>
+          </div>
+          <div class="stat-item warning">
+            <div class="number" id="unmatchCount">0</div>
+            <div class="label">未処理</div>
+          </div>
+        </div>
+        <div class="download-area">
+          <div class="btn-group">
+            <button class="btn btn-success" id="downloadBtn">CSVダウンロード</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 未処理データ一覧 -->
+      <div class="card">
+        <div class="card-title">未処理データ一覧</div>
+        <div class="table-container">
+          <table id="unmatchTable">
+            <thead>
+              <tr>
+                <th>商品管理番号</th>
+                <th>商品名</th>
+                <th>すべての情報</th>
+                <th>数量</th>
+                <th>理由</th>
+              </tr>
+            </thead>
+            <tbody id="unmatchBody">
+            </tbody>
+          </table>
+          <div class="no-data" id="noUnmatchData">未処理データはありません</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // マスターデータ (274行)
+    // ==========================================
+    const masterData = [
+      // y001: エリザベスカラー (行1-5)
+      { row: 1, productId: "y001", sku: "タイプ:通常品\nカラー:イエロー" },
+      { row: 2, productId: "y001", sku: "タイプ:通常品\nカラー:グリーン" },
+      { row: 3, productId: "y001", sku: "タイプ:通常品\nカラー:グレー" },
+      { row: 4, productId: "y001", sku: "タイプ:通常品\nカラー:ピンク" },
+      { row: 5, productId: "y001", sku: "タイプ:通常品\nカラー:ブルー" },
+
+      // y002: ペットシーツ (行6-54)
+      { row: 6, productId: "y002", sku: "グレー XS" },
+      { row: 7, productId: "y002", sku: "グレー S" },
+      { row: 8, productId: "y002", sku: "グレー M" },
+      { row: 9, productId: "y002", sku: "グレー L" },
+      { row: 10, productId: "y002", sku: "グレー XL" },
+      { row: 11, productId: "y002", sku: "グレー 大" },
+      { row: 12, productId: "y002", sku: "グレー 特大" },
+      { row: 13, productId: "y002", sku: "ベージュ XS" },
+      { row: 14, productId: "y002", sku: "ベージュ S" },
+      { row: 15, productId: "y002", sku: "ベージュ M" },
+      { row: 16, productId: "y002", sku: "ベージュ L" },
+      { row: 17, productId: "y002", sku: "ベージュ XL" },
+      { row: 18, productId: "y002", sku: "ベージュ 大" },
+      { row: 19, productId: "y002", sku: "ベージュ 特大" },
+      { row: 20, productId: "y002", sku: "シルバーパープル XS" },
+      { row: 21, productId: "y002", sku: "シルバーパープル S" },
+      { row: 22, productId: "y002", sku: "シルバーパープル M" },
+      { row: 23, productId: "y002", sku: "シルバーパープル L" },
+      { row: 24, productId: "y002", sku: "シルバーパープル XL" },
+      { row: 25, productId: "y002", sku: "シルバーパープル 大" },
+      { row: 26, productId: "y002", sku: "シルバーパープル 特大" },
+      { row: 27, productId: "y002", sku: "骨柄グレー XS" },
+      { row: 28, productId: "y002", sku: "骨柄グレー S" },
+      { row: 29, productId: "y002", sku: "骨柄グレー M" },
+      { row: 30, productId: "y002", sku: "骨柄グレー L" },
+      { row: 31, productId: "y002", sku: "骨柄グレー XL" },
+      { row: 32, productId: "y002", sku: "骨柄グレー 大" },
+      { row: 33, productId: "y002", sku: "骨柄グレー 特大" },
+      { row: 34, productId: "y002", sku: "骨柄ホワイト XS" },
+      { row: 35, productId: "y002", sku: "骨柄ホワイト S" },
+      { row: 36, productId: "y002", sku: "骨柄ホワイト M" },
+      { row: 37, productId: "y002", sku: "骨柄ホワイト L" },
+      { row: 38, productId: "y002", sku: "骨柄ホワイト XL" },
+      { row: 39, productId: "y002", sku: "骨柄ホワイト 大" },
+      { row: 40, productId: "y002", sku: "骨柄ホワイト 特大" },
+      { row: 41, productId: "y002", sku: "ホワイト XS" },
+      { row: 42, productId: "y002", sku: "ホワイト S" },
+      { row: 43, productId: "y002", sku: "ホワイト M" },
+      { row: 44, productId: "y002", sku: "ホワイト L" },
+      { row: 45, productId: "y002", sku: "ホワイト XL" },
+      { row: 46, productId: "y002", sku: "ホワイト 大" },
+      { row: 47, productId: "y002", sku: "ホワイト 特大" },
+      { row: 48, productId: "y002", sku: "犬柄ブラウン XS" },
+      { row: 49, productId: "y002", sku: "犬柄ブラウン S" },
+      { row: 50, productId: "y002", sku: "犬柄ブラウン M" },
+      { row: 51, productId: "y002", sku: "犬柄ブラウン L" },
+      { row: 52, productId: "y002", sku: "犬柄ブラウン XL" },
+      { row: 53, productId: "y002", sku: "犬柄ブラウン 大" },
+      { row: 54, productId: "y002", sku: "犬柄ブラウン 特大" },
+
+      // y003, y004, y005 空行 (行55-57)
+      { row: 55, productId: "", sku: "" },
+      { row: 56, productId: "", sku: "" },
+      { row: 57, productId: "", sku: "" },
+
+      // y003 (行58)
+      { row: 58, productId: "y003", sku: "" },
+
+      // 空行 (行59)
+      { row: 59, productId: "", sku: "" },
+
+      // y004 (行60)
+      { row: 60, productId: "y004", sku: "" },
+
+      // 空行 (行61)
+      { row: 61, productId: "", sku: "" },
+
+      // y005 (行62-76)
+      { row: 62, productId: "y005", sku: "" },
+      { row: 63, productId: "y005", sku: "" },
+      { row: 64, productId: "y005", sku: "" },
+      { row: 65, productId: "y005", sku: "" },
+      { row: 66, productId: "y005", sku: "" },
+      { row: 67, productId: "y005", sku: "" },
+      { row: 68, productId: "y005", sku: "" },
+      { row: 69, productId: "y005", sku: "" },
+      { row: 70, productId: "y005", sku: "" },
+      { row: 71, productId: "y005", sku: "" },
+      { row: 72, productId: "y005", sku: "" },
+      { row: 73, productId: "y005", sku: "" },
+      { row: 74, productId: "y005", sku: "" },
+      { row: 75, productId: "y005", sku: "" },
+      { row: 76, productId: "y005", sku: "" },
+
+      // y006: 防水ポーチ (行77-90)
+      { row: 77, productId: "y006", sku: "カラー:#1 ブラック" },
+      { row: 78, productId: "y006", sku: "カラー:#2 チャコールグレー" },
+      { row: 79, productId: "y006", sku: "カラー:#3グレー" },
+      { row: 80, productId: "y006", sku: "カラー:#4ネイビー" },
+      { row: 81, productId: "y006", sku: "カラー:#5 ブルー" },
+      { row: 82, productId: "y006", sku: "カラー:#6 グレイッシュブルー" },
+      { row: 83, productId: "y006", sku: "カラー:#7 ベビーブルー" },
+      { row: 84, productId: "y006", sku: "カラー:#8 グレイッシュグリーン" },
+      { row: 85, productId: "y006", sku: "カラー:#9シーグリーン" },
+      { row: 86, productId: "y006", sku: "カラー:#10イエロー" },
+      { row: 87, productId: "y006", sku: "カラー:#11 クロムオレンジ" },
+      { row: 88, productId: "y006", sku: "カラー:#12パープル" },
+      { row: 89, productId: "y006", sku: "カラー:#13 ラベンダー" },
+      { row: 90, productId: "y006", sku: "カラー:#14ピンク" },
+
+      // y007 (行91-101)
+      { row: 91, productId: "y007", sku: "" },
+      { row: 92, productId: "y007", sku: "" },
+      { row: 93, productId: "y007", sku: "" },
+      { row: 94, productId: "y007", sku: "" },
+      { row: 95, productId: "y007", sku: "" },
+      { row: 96, productId: "y007", sku: "" },
+      { row: 97, productId: "y007", sku: "" },
+      { row: 98, productId: "y007", sku: "" },
+      { row: 99, productId: "y007", sku: "" },
+      { row: 100, productId: "y007", sku: "" },
+      { row: 101, productId: "y007", sku: "" },
+
+      // y008waki_pad (行102)
+      { row: 102, productId: "y008waki_pad", sku: "10" },
+
+      // 空行 (行103-104)
+      { row: 103, productId: "", sku: "" },
+      { row: 104, productId: "", sku: "" },
+
+      // y009: パスポートケース (行105-118)
+      { row: 105, productId: "y009", sku: "タイプ:シンプル\nカラー:#1 ホワイト" },
+      { row: 106, productId: "y009", sku: "タイプ:シンプル\nカラー:#2 ブラック" },
+      { row: 107, productId: "y009", sku: "タイプ:シンプル\nカラー:#3 レッド" },
+      { row: 108, productId: "y009", sku: "タイプ:シンプル\nカラー:#4 ブラウン(s)" },
+      { row: 109, productId: "y009", sku: "タイプ:シンプル\nカラー:#4 ブラウン(s)" },
+      { row: 110, productId: "y009", sku: "タイプ:シンプル\nカラー:#5 グリーン" },
+      { row: 111, productId: "y009", sku: "タイプ:シンプル\nカラー:#7 ネイビー" },
+      { row: 112, productId: "y009", sku: "タイプ:シンプル\nカラー:#8 ダークブラウン" },
+      { row: 113, productId: "y009", sku: "タイプ:バンド付\nカラー:#1 ピンク" },
+      { row: 114, productId: "y009", sku: "タイプ:バンド付\nカラー:#2 ライトブルー" },
+      { row: 115, productId: "y009", sku: "タイプ:バンド付\nカラー:#3 グレー" },
+      { row: 116, productId: "y009", sku: "タイプ:バンド付\nカラー:#4 ブラウン(b)" },
+      { row: 117, productId: "y009", sku: "タイプ:バンド付\nカラー:#5 ブルー" },
+      { row: 118, productId: "y009", sku: "タイプ:バンド付\nカラー:#6 ブラック" },
+
+      // y009 合計×2 特殊行 (行119)
+      { row: 119, productId: "y009", sku: "カードケース(=y009の販売実績合計*2)", isSpecial: true, specialType: "multiplier", sourceProductId: "y009", multiplier: 2 },
+
+      // y010 (行120-122)
+      { row: 120, productId: "y010", sku: "カラー:イエロー" },
+      { row: 121, productId: "y010", sku: "カラー:グレー" },
+      { row: 122, productId: "y010", sku: "" },
+
+      // y011golfball_case (行123-126)
+      { row: 123, productId: "y011golfball_case", sku: "カラー:ブラウン＆ネイビー" },
+      { row: 124, productId: "y011golfball_case", sku: "カラー:グリーン＆ベージュ" },
+      { row: 125, productId: "y011golfball_case", sku: "カラー:グレー＆ピンク" },
+
+      // y011golfball_case 合計×1 特殊行 (行126)
+      { row: 126, productId: "y011golfball_case", sku: "ベルト(=y011golfball_caseの販売実績合計*1)", isSpecial: true, specialType: "multiplier", sourceProductId: "y011golfball_case", multiplier: 1 },
+
+      // y012pet_bathmat (行127-135)
+      { row: 127, productId: "y012pet_bathmat", sku: "カラー:ホワイト\nサイズ:レギュラー" },
+      { row: 128, productId: "y012pet_bathmat", sku: "カラー:ホワイト\nサイズ:ワイド" },
+      { row: 129, productId: "y012pet_bathmat", sku: "カラー:ホワイト\nサイズ:スーパーワイド" },
+      { row: 130, productId: "y012pet_bathmat", sku: "カラー:グレー\nサイズ:レギュラー" },
+      { row: 131, productId: "y012pet_bathmat", sku: "カラー:グレー\nサイズ:ワイド" },
+      { row: 132, productId: "y012pet_bathmat", sku: "カラー:グレー\nサイズ:スーパーワイド" },
+      { row: 133, productId: "y012pet_bathmat", sku: "カラー:ブルー\nサイズ:レギュラー" },
+      { row: 134, productId: "y012pet_bathmat", sku: "カラー:ブルー\nサイズ:ワイド" },
+      { row: 135, productId: "y012pet_bathmat", sku: "カラー:ブルー\nサイズ:スーパーワイド" },
+
+      // y013suit_belt (行136-142)
+      { row: 136, productId: "y013suit_belt", sku: "カラー:ブラック" },
+      { row: 137, productId: "y013suit_belt", sku: "カラー:ブルー" },
+      { row: 138, productId: "y013suit_belt", sku: "カラー:イエロー" },
+      { row: 139, productId: "y013suit_belt", sku: "カラー:レッド" },
+      { row: 140, productId: "y013suit_belt", sku: "カラー:シルバー" },
+      { row: 141, productId: "y013suit_belt", sku: "カラー:グリーン" },
+
+      // y013suit_belt 合計×1 特殊行 (行142)
+      { row: 142, productId: "y013suit_belt", sku: "手荷物バンド(=y013suit_beltの販売実績合計*1)", isSpecial: true, specialType: "multiplier", sourceProductId: "y013suit_belt", multiplier: 1 },
+
+      // y014gara_eliza (行143-168)
+      { row: 143, productId: "y014gara_eliza", sku: "カラー:#1 水玉イエロー\nサイズ:S" },
+      { row: 144, productId: "y014gara_eliza", sku: "カラー:#1 水玉イエロー\nサイズ:M" },
+      { row: 145, productId: "y014gara_eliza", sku: "カラー:#1 水玉イエロー\nサイズ:L" },
+      { row: 146, productId: "y014gara_eliza", sku: "カラー:#1 水玉イエロー\nサイズ:XL" },
+      { row: 147, productId: "y014gara_eliza", sku: "カラー:#2 水玉ピンク\nサイズ:S" },
+      { row: 148, productId: "y014gara_eliza", sku: "カラー:#2 水玉ピンク\nサイズ:M" },
+      { row: 149, productId: "y014gara_eliza", sku: "カラー:#2 水玉ピンク\nサイズ:L" },
+      { row: 150, productId: "y014gara_eliza", sku: "カラー:#2 水玉ピンク\nサイズ:XL" },
+      { row: 151, productId: "y014gara_eliza", sku: "カラー:#3 花柄ブルー\nサイズ:S" },
+      { row: 152, productId: "y014gara_eliza", sku: "カラー:#3 花柄ブルー\nサイズ:M" },
+      { row: 153, productId: "y014gara_eliza", sku: "カラー:#3 花柄ブルー\nサイズ:L" },
+      { row: 154, productId: "y014gara_eliza", sku: "カラー:#3 花柄ブルー\nサイズ:XL" },
+      { row: 155, productId: "y014gara_eliza", sku: "カラー:#4 花柄ピンク\nサイズ:S" },
+      { row: 156, productId: "y014gara_eliza", sku: "カラー:#4 花柄ピンク\nサイズ:M" },
+      { row: 157, productId: "y014gara_eliza", sku: "カラー:#4 花柄ピンク\nサイズ:L" },
+      { row: 158, productId: "y014gara_eliza", sku: "カラー:#4 花柄ピンク\nサイズ:XL" },
+      { row: 159, productId: "y014gara_eliza", sku: "カラー:#5 ブラック\nサイズ:S" },
+      { row: 160, productId: "y014gara_eliza", sku: "カラー:#5 ブラック\nサイズ:M" },
+      { row: 161, productId: "y014gara_eliza", sku: "カラー:#5 ブラック\nサイズ:L" },
+      { row: 162, productId: "y014gara_eliza", sku: "カラー:#5 ブラック\nサイズ:XL" },
+      { row: 163, productId: "y014gara_eliza", sku: "カラー:#6 宇宙\nサイズ:S" },
+      { row: 164, productId: "y014gara_eliza", sku: "カラー:#6 宇宙\nサイズ:M" },
+      { row: 165, productId: "y014gara_eliza", sku: "カラー:#6 宇宙\nサイズ:L" },
+      { row: 166, productId: "y014gara_eliza", sku: "カラー:#7 星座\nサイズ:S" },
+      { row: 167, productId: "y014gara_eliza", sku: "カラー:#7 星座\nサイズ:M" },
+      { row: 168, productId: "y014gara_eliza", sku: "カラー:#7 星座\nサイズ:L" },
+
+      // y015karasu_net (行169-173)
+      { row: 169, productId: "y015karasu_net", sku: "サイズ:1.2m×1.2m" },
+      { row: 170, productId: "y015karasu_net", sku: "サイズ:1.5m×1.5m" },
+      { row: 171, productId: "y015karasu_net", sku: "サイズ:1.5m×2.0m" },
+      { row: 172, productId: "y015karasu_net", sku: "サイズ:2.0m×3.0m" },
+      { row: 173, productId: "y015karasu_net", sku: "サイズ:3.0m×4.0m" },
+
+      // y016ac_mirror (行174-177)
+      { row: 174, productId: "y016ac_mirror", sku: "丸角 (20×20cm)" },
+      { row: 175, productId: "y016ac_mirror", sku: "丸角 (30×20cm)" },
+      { row: 176, productId: "y016ac_mirror", sku: "丸角 (28×28cm)" },
+      { row: 177, productId: "y016ac_mirror", sku: "" },
+
+      // y017futon (行178-180)
+      { row: 178, productId: "y017futon", sku: "中60*80" },
+      { row: 179, productId: "y017futon", sku: "大80*100" },
+      { row: 180, productId: "y017futon", sku: "特大100*120" },
+
+      // y018cartowel (行181-183)
+      { row: 181, productId: "y018cartowel", sku: "中40*60" },
+      { row: 182, productId: "y018cartowel", sku: "大60*90" },
+      { row: 183, productId: "y018cartowel", sku: "特大160*60" },
+
+      // y019pet_cleaner (行184-186)
+      { row: 184, productId: "y019pet_cleaner", sku: "" },
+      { row: 185, productId: "y019pet_cleaner", sku: "" },
+      { row: 186, productId: "y019pet_cleaner", sku: "" },
+
+      // y020pet_belt (行187-206)
+      { row: 187, productId: "y020pet_belt", sku: "" },
+      { row: 188, productId: "y020pet_belt", sku: "" },
+      { row: 189, productId: "y020pet_belt", sku: "" },
+      { row: 190, productId: "y020pet_belt", sku: "" },
+      { row: 191, productId: "y020pet_belt", sku: "" },
+      { row: 192, productId: "y020pet_belt", sku: "" },
+      { row: 193, productId: "y020pet_belt", sku: "" },
+      { row: 194, productId: "y020pet_belt", sku: "" },
+      { row: 195, productId: "y020pet_belt", sku: "" },
+      { row: 196, productId: "y020pet_belt", sku: "" },
+      { row: 197, productId: "y020pet_belt", sku: "" },
+      { row: 198, productId: "y020pet_belt", sku: "" },
+      { row: 199, productId: "y020pet_belt", sku: "" },
+      { row: 200, productId: "y020pet_belt", sku: "" },
+      { row: 201, productId: "y020pet_belt", sku: "" },
+      { row: 202, productId: "y020pet_belt", sku: "" },
+      { row: 203, productId: "y020pet_belt", sku: "" },
+      { row: 204, productId: "y020pet_belt", sku: "" },
+      { row: 205, productId: "y020pet_belt", sku: "" },
+      { row: 206, productId: "y020pet_belt", sku: "" },
+
+      // y021fuku_cover (行207-211)
+      { row: 207, productId: "y021fuku_cover", sku: "タイプ:窓なしショート" },
+      { row: 208, productId: "y021fuku_cover", sku: "タイプ:窓なしロング" },
+      { row: 209, productId: "y021fuku_cover", sku: "タイプ:窓付きショート" },
+      { row: 210, productId: "y021fuku_cover", sku: "タイプ:窓付きロング" },
+      { row: 211, productId: "y021fuku_cover", sku: "" },
+
+      // y022laundry_bag (行212-215)
+      { row: 212, productId: "y022laundry_bag", sku: "カラー:ブラック" },
+      { row: 213, productId: "y022laundry_bag", sku: "カラー:グレー" },
+      { row: 214, productId: "y022laundry_bag", sku: "" },
+      { row: 215, productId: "y022laundry_bag", sku: "" },
+
+      // y023dis_shorts (行216-223)
+      { row: 216, productId: "y023dis_shorts", sku: "多色 M" },
+      { row: 217, productId: "y023dis_shorts", sku: "多色 L" },
+      { row: 218, productId: "y023dis_shorts", sku: "多色 XL" },
+      { row: 219, productId: "y023dis_shorts", sku: "多色 2XL" },
+      { row: 220, productId: "y023dis_shorts", sku: "黒 M" },
+      { row: 221, productId: "y023dis_shorts", sku: "黒 L" },
+      { row: 222, productId: "y023dis_shorts", sku: "黒 XL" },
+      { row: 223, productId: "y023dis_shorts", sku: "黒 2XL" },
+
+      // y024cat_tume (行224-254)
+      { row: 224, productId: "y024cat_tume", sku: "カラー:サンプル\nセット:６種" },
+      { row: 225, productId: "y024cat_tume", sku: "ブラック 20×30" },
+      { row: 226, productId: "y024cat_tume", sku: "カラー:ブラック\nセット:30×100cm" },
+      { row: 227, productId: "y024cat_tume", sku: "カラー:ブラック\nセット:40×100cm" },
+      { row: 228, productId: "y024cat_tume", sku: "カラー:ブラック\nセット:60×100cm" },
+      { row: 229, productId: "y024cat_tume", sku: "ダークグレー 20×30" },
+      { row: 230, productId: "y024cat_tume", sku: "カラー:ダークグレー\nセット:30×100cm" },
+      { row: 231, productId: "y024cat_tume", sku: "カラー:ダークグレー\nセット:40×100cm" },
+      { row: 232, productId: "y024cat_tume", sku: "カラー:ダークグレー\nセット:60×100cm" },
+      { row: 233, productId: "y024cat_tume", sku: "ライトグレー 20×30" },
+      { row: 234, productId: "y024cat_tume", sku: "カラー:ライトグレー\nセット:30×100cm" },
+      { row: 235, productId: "y024cat_tume", sku: "カラー:ライトグレー\nセット:40×100cm" },
+      { row: 236, productId: "y024cat_tume", sku: "カラー:ライトグレー\nセット:60×100cm" },
+      { row: 237, productId: "y024cat_tume", sku: "ブラウン 20×30" },
+      { row: 238, productId: "y024cat_tume", sku: "カラー:ブラウン\nセット:30×100cm" },
+      { row: 239, productId: "y024cat_tume", sku: "カラー:ブラウン\nセット:40×100cm" },
+      { row: 240, productId: "y024cat_tume", sku: "カラー:ブラウン\nセット:60×100cm" },
+      { row: 241, productId: "y024cat_tume", sku: "ベージュ 20×30" },
+      { row: 242, productId: "y024cat_tume", sku: "セット:30×100cm\nカラー:ベージュ" },
+      { row: 243, productId: "y024cat_tume", sku: "セット:40×100cm\nカラー:ベージュ" },
+      { row: 244, productId: "y024cat_tume", sku: "セット:60×100cm\nカラー:ベージュ" },
+      { row: 245, productId: "y024cat_tume", sku: "オフホワイト 20×30" },
+      { row: 246, productId: "y024cat_tume", sku: "カラー:オフホワイト\nセット:30×100cm" },
+      { row: 247, productId: "y024cat_tume", sku: "カラー:オフホワイト\nセット:40×100cm" },
+      { row: 248, productId: "y024cat_tume", sku: "カラー:オフホワイト\nセット:60×100cm" },
+      { row: 249, productId: "y024cat_tume", sku: "カラー:透明 静電気\nセット:40cm×10m" },
+      { row: 250, productId: "y024cat_tume", sku: "カラー:透明 静電気\nセット:60cm×10m" },
+      { row: 251, productId: "y024cat_tume", sku: "カラー:透明 シール\nセット:31.5cm×4.1m" },
+      { row: 252, productId: "y024cat_tume", sku: "" },
+
+      // y024cat_tume 合計×1 特殊行 (行253)
+      { row: 253, productId: "y024cat_tume", sku: "両面シール(=y024cat_tumeの販売実績合計*1)", isSpecial: true, specialType: "multiplier", sourceProductId: "y024cat_tume", multiplier: 1 },
+
+      // y025_silicon_toilet (行254-259)
+      { row: 254, productId: "y025_silicon_toilet", sku: "ホワイトS" },
+      { row: 255, productId: "y025_silicon_toilet", sku: "ホワイトM" },
+      { row: 256, productId: "y025_silicon_toilet", sku: "グレーS" },
+      { row: 257, productId: "y025_silicon_toilet", sku: "グレーM" },
+      { row: 258, productId: "y025_silicon_toilet", sku: "ライトブラウンS" },
+      { row: 259, productId: "y025_silicon_toilet", sku: "ライトブラウンM" },
+
+      // y026_nuigurumi (行260-269)
+      { row: 260, productId: "y026_nuigurumi", sku: "カラー:ホワイト\nサイズ:４段" },
+      { row: 261, productId: "y026_nuigurumi", sku: "カラー:ホワイト\nサイズ:６段" },
+      { row: 262, productId: "y026_nuigurumi", sku: "カラー:グレー\nサイズ:４段" },
+      { row: 263, productId: "y026_nuigurumi", sku: "カラー:グレー\nサイズ:６段" },
+      { row: 264, productId: "y026_nuigurumi", sku: "カラー:ピンク\nサイズ:４段" },
+      { row: 265, productId: "y026_nuigurumi", sku: "カラー:ピンク\nサイズ:６段" },
+      { row: 266, productId: "y026_nuigurumi", sku: "カラー:ブラック\nサイズ:４段" },
+      { row: 267, productId: "y026_nuigurumi", sku: "カラー:ブラック\nサイズ:６段" },
+
+      // y026_nuigurumi 合計×1 特殊行 (行268)
+      { row: 268, productId: "y026_nuigurumi", sku: "洗濯ネット(=y026_nuigurumiの販売実績合計*1)", isSpecial: true, specialType: "multiplier", sourceProductId: "y026_nuigurumi", multiplier: 1 },
+
+      // y026_nuigurumi 合計×2 特殊行 (行269)
+      { row: 269, productId: "y026_nuigurumi", sku: "フック(=y026_nuigurumiの販売実績合計*2)", isSpecial: true, specialType: "multiplier", sourceProductId: "y026_nuigurumi", multiplier: 2 },
+
+      // y027_sube-tape (行270-274 - 空)
+      { row: 270, productId: "y027_sube-tape", sku: "" },
+      { row: 271, productId: "y027_sube-tape", sku: "" },
+      { row: 272, productId: "y027_sube-tape", sku: "" },
+      { row: 273, productId: "y027_sube-tape", sku: "" },
+      { row: 274, productId: "", sku: "" },
+    ];
+
+    // ==========================================
+    // セット分解ルール
+    // ==========================================
+
+    // y017futon（布団圧縮袋）
+    const futonRules = {
+      "セット内容:中×2 (60×80cm)": { "中60*80": 2, "大80*100": 0, "特大100*120": 0 },
+      "セット内容:中×4 (60×80cm)": { "中60*80": 4, "大80*100": 0, "特大100*120": 0 },
+      "セット内容:大×1 (80×100cm)": { "中60*80": 0, "大80*100": 1, "特大100*120": 0 },
+      "セット内容:大×3 (80×100cm)": { "中60*80": 0, "大80*100": 3, "特大100*120": 0 },
+      "セット内容:特大×1 (100×120cm)": { "中60*80": 0, "大80*100": 0, "特大100*120": 1 },
+      "セット内容:特大×2 (100×120cm)": { "中60*80": 0, "大80*100": 0, "特大100*120": 2 },
+      "セット内容:大×1+特大×1": { "中60*80": 0, "大80*100": 1, "特大100*120": 1 },
+      "セット内容:大×2+特大×1": { "中60*80": 0, "大80*100": 2, "特大100*120": 1 },
+    };
+
+    // y018cartowel（カータオル）
+    const cartowelRules = {
+      "セット:中×1 (40×60cm)": { "中40*60": 1, "大60*90": 0, "特大160*60": 0 },
+      "セット:中×2 (40×60cm)": { "中40*60": 2, "大60*90": 0, "特大160*60": 0 },
+      "セット:中×4 (40×60cm)": { "中40*60": 4, "大60*90": 0, "特大160*60": 0 },
+      "セット:大×1 (60×90cm)": { "中40*60": 0, "大60*90": 1, "特大160*60": 0 },
+      "セット:大×2 (60×90cm)": { "中40*60": 0, "大60*90": 2, "特大160*60": 0 },
+      "セット:大×1+中×2": { "中40*60": 2, "大60*90": 1, "特大160*60": 0 },
+      "セット:特大×1 (160×60cm)": { "中40*60": 0, "大60*90": 0, "特大160*60": 1 },
+      "セット:特大×1+中×1": { "中40*60": 1, "大60*90": 0, "特大160*60": 1 },
+    };
+
+    // ==========================================
+    // ユーティリティ関数
+    // ==========================================
+
+    // 全角数字を半角に変換
+    function normalizeNumber(str) {
+      return str.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+    }
+
+    // SKU文字列の正規化（改行をスペースに、全角を半角に）
+    function normalizeSku(sku) {
+      if (!sku) return "";
+      return normalizeNumber(sku.trim());
+    }
+
+    // SKU比較用の正規化（改行とスペースの違いを吸収）
+    function normalizeForCompare(sku) {
+      if (!sku) return "";
+      // 改行をスペースに変換し、連続するスペースを1つに
+      return normalizeNumber(sku.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim());
+    }
+
+    // SKU完全一致チェック（改行の違いを考慮）
+    function skuMatches(salesSku, masterSku) {
+      if (!salesSku || !masterSku) return false;
+
+      const normalizedSales = normalizeForCompare(salesSku);
+      const normalizedMaster = normalizeForCompare(masterSku);
+
+      return normalizedSales === normalizedMaster;
+    }
+
+    // 販売実績から値を抽出
+    function extractValue(sku, prefix) {
+      if (!sku) return null;
+      const lines = sku.split(/\r?\n/);
+      for (const line of lines) {
+        if (line.startsWith(prefix)) {
+          return line.substring(prefix.length).trim();
+        }
+      }
+      return null;
+    }
+
+    // 括弧前の値を取得（サイズ用）
+    function extractSizeBeforeParen(value) {
+      if (!value) return null;
+      const match = value.match(/^([^（(]+)/);
+      return match ? normalizeNumber(match[1].trim()) : normalizeNumber(value.trim());
+    }
+
+    // 枚数を抽出（10枚、60枚、100枚など）
+    function extractSheetCount(sku) {
+      if (!sku) return 0;
+      const normalized = normalizeNumber(sku);
+      const match = normalized.match(/(\d+)枚/);
+      return match ? parseInt(match[1], 10) : 0;
+    }
+
+    // y024cat_tumeの20×30セット枚数を抽出（2枚 or 4枚）
+    function extractCatTumeSheets(sku) {
+      if (!sku) return 0;
+      const normalized = normalizeNumber(sku);
+      // セット:2枚(20×30) or セット:4枚(20×30)
+      const match = normalized.match(/セット:(\d+)枚.*20[×x]30/i);
+      return match ? parseInt(match[1], 10) : 0;
+    }
+
+    // CSVをパース（改行を含むセル対応）
+    function parseCSV(text) {
+      const rows = [];
+      let currentRow = [];
+      let currentCell = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const nextChar = text[i + 1];
+
+        if (inQuotes) {
+          if (char === '"') {
+            if (nextChar === '"') {
+              currentCell += '"';
+              i++;
+            } else {
+              inQuotes = false;
+            }
+          } else {
+            currentCell += char;
+          }
+        } else {
+          if (char === '"') {
+            inQuotes = true;
+          } else if (char === ',') {
+            currentRow.push(currentCell);
+            currentCell = "";
+          } else if (char === '\r') {
+            // skip
+          } else if (char === '\n') {
+            currentRow.push(currentCell);
+            if (currentRow.length > 0) {
+              rows.push(currentRow);
+            }
+            currentRow = [];
+            currentCell = "";
+          } else {
+            currentCell += char;
+          }
+        }
+      }
+
+      // 最後のセルと行を追加
+      if (currentCell || currentRow.length > 0) {
+        currentRow.push(currentCell);
+        rows.push(currentRow);
+      }
+
+      return rows;
+    }
+
+    // 文字コード自動判別してテキストに変換
+    async function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const buffer = e.target.result;
+          const uint8Array = new Uint8Array(buffer);
+
+          // UTF-8 BOMチェック
+          if (uint8Array[0] === 0xEF && uint8Array[1] === 0xBB && uint8Array[2] === 0xBF) {
+            const decoder = new TextDecoder('utf-8');
+            resolve(decoder.decode(uint8Array.slice(3)));
+            return;
+          }
+
+          // UTF-8として試行
+          try {
+            const decoder = new TextDecoder('utf-8', { fatal: true });
+            const text = decoder.decode(uint8Array);
+            resolve(text);
+            return;
+          } catch (e) {
+            // Shift-JISとして試行
+          }
+
+          // Shift-JIS
+          const decoder = new TextDecoder('shift-jis');
+          resolve(decoder.decode(uint8Array));
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    // ==========================================
+    // メイン処理
+    // ==========================================
+
+    let salesData = [];
+    let resultData = [];
+    let unmatchedData = [];
+
+    // 結果を格納するオブジェクト（マスター行番号 -> 数量）
+    let quantities = {};
+
+    // 商品別合計を格納（合計×倍率ルール用）
+    let productTotals = {};
+
+    // 空行商品ID（無視対象）
+    const emptySkuProducts = new Set();
+    masterData.forEach(m => {
+      if (m.sku === "" && m.productId) {
+        emptySkuProducts.add(m.productId);
+      }
+    });
+
+    // マスター検索（商品ID + SKU）
+    function findMasterRow(productId, sku) {
+      for (const m of masterData) {
+        if (m.productId === productId && !m.isSpecial && m.sku && skuMatches(sku, m.sku)) {
+          return m;
+        }
+      }
+      return null;
+    }
+
+    // y025_silicon_toilet用のマスター検索
+    function findToiletMasterRow(colorSize) {
+      for (const m of masterData) {
+        if (m.productId === "y025_silicon_toilet" && m.sku === colorSize) {
+          return m;
+        }
+      }
+      return null;
+    }
+
+    // y023dis_shorts用のマスター検索
+    function findShortsMasterRow(colorSize) {
+      // 2XLの全角/半角対応
+      const normalized = normalizeNumber(colorSize);
+      for (const m of masterData) {
+        if (m.productId === "y023dis_shorts") {
+          const masterNormalized = normalizeNumber(m.sku);
+          if (normalized === masterNormalized) {
+            return m;
+          }
+        }
+      }
+      return null;
+    }
+
+    // y024cat_tumeの20×30用マスター検索
+    function findCatTume20x30MasterRow(color) {
+      const targetSku = color + " 20×30";
+      for (const m of masterData) {
+        if (m.productId === "y024cat_tume" && m.sku === targetSku) {
+          return m;
+        }
+      }
+      return null;
+    }
+
+    // y017futon用のマスター検索
+    function findFutonMasterRow(sku) {
+      for (const m of masterData) {
+        if (m.productId === "y017futon" && m.sku === sku) {
+          return m;
+        }
+      }
+      return null;
+    }
+
+    // y018cartowel用のマスター検索
+    function findCartowelMasterRow(sku) {
+      for (const m of masterData) {
+        if (m.productId === "y018cartowel" && m.sku === sku) {
+          return m;
+        }
+      }
+      return null;
+    }
+
+    // y008waki_pad用のマスター検索
+    function findWakiPadMasterRow() {
+      for (const m of masterData) {
+        if (m.productId === "y008waki_pad" && m.sku === "10") {
+          return m;
+        }
+      }
+      return null;
+    }
+
+    // 集計実行
+    function processData() {
+      quantities = {};
+      productTotals = {};
+      unmatchedData = [];
+      let matchCount = 0;
+
+      // 1. 全商品の販売合計を計算（通常商品のみ、特殊ルール適用前）
+      for (const sale of salesData) {
+        const pid = sale.productId;
+        if (!productTotals[pid]) {
+          productTotals[pid] = 0;
+        }
+        productTotals[pid] += sale.quantity;
+      }
+
+      // 2. 各販売データを処理
+      for (const sale of salesData) {
+        const { productId, productName, sku, quantity } = sale;
+
+        // 空行商品は無視
+        if (emptySkuProducts.has(productId)) {
+          // マスターに有効なSKUがあるか確認
+          const hasValidSku = masterData.some(m => m.productId === productId && m.sku && !m.isSpecial);
+          if (!hasValidSku) {
+            continue; // 無視（未処理にも表示しない）
+          }
+        }
+
+        let processed = false;
+
+        // ===== 特殊ルール処理 =====
+
+        // y008waki_pad: 枚数÷10
+        if (productId === "y008waki_pad") {
+          const sheets = extractSheetCount(sku);
+          if (sheets > 0) {
+            const value = (sheets / 10) * quantity;
+            const masterRow = findWakiPadMasterRow();
+            if (masterRow) {
+              quantities[masterRow.row] = (quantities[masterRow.row] || 0) + value;
+              matchCount++;
+              processed = true;
+            }
+          }
+        }
+
+        // y017futon: セット分解
+        else if (productId === "y017futon") {
+          const normalizedSku = normalizeNumber(sku);
+          const rule = futonRules[normalizedSku];
+          if (rule) {
+            for (const [size, count] of Object.entries(rule)) {
+              if (count > 0) {
+                const masterRow = findFutonMasterRow(size);
+                if (masterRow) {
+                  quantities[masterRow.row] = (quantities[masterRow.row] || 0) + (count * quantity);
+                }
+              }
+            }
+            matchCount++;
+            processed = true;
+          }
+        }
+
+        // y018cartowel: セット分解
+        else if (productId === "y018cartowel") {
+          const normalizedSku = normalizeNumber(sku);
+          const rule = cartowelRules[normalizedSku];
+          if (rule) {
+            for (const [size, count] of Object.entries(rule)) {
+              if (count > 0) {
+                const masterRow = findCartowelMasterRow(size);
+                if (masterRow) {
+                  quantities[masterRow.row] = (quantities[masterRow.row] || 0) + (count * quantity);
+                }
+              }
+            }
+            matchCount++;
+            processed = true;
+          }
+        }
+
+        // y023dis_shorts: 枚数換算÷5
+        else if (productId === "y023dis_shorts") {
+          const color = extractValue(sku, "カラー:");
+          const sizeRaw = extractValue(sku, "サイズ:");
+          const size = extractSizeBeforeParen(sizeRaw);
+          const sheets = extractSheetCount(sku);
+
+          if (color && size && sheets > 0) {
+            const actualSheets = quantity * sheets;
+            const packs = actualSheets / 5;
+            const colorSize = color + " " + size;
+            const masterRow = findShortsMasterRow(colorSize);
+            if (masterRow) {
+              quantities[masterRow.row] = (quantities[masterRow.row] || 0) + packs;
+              matchCount++;
+              processed = true;
+            }
+          }
+        }
+
+        // y024cat_tume: 20×30の枚数換算
+        else if (productId === "y024cat_tume") {
+          const sheets = extractCatTumeSheets(sku);
+          if (sheets > 0) {
+            // 20×30の2枚/4枚セット
+            const color = extractValue(sku, "カラー:");
+            if (color) {
+              const actualSheets = quantity * sheets;
+              const masterRow = findCatTume20x30MasterRow(color);
+              if (masterRow) {
+                quantities[masterRow.row] = (quantities[masterRow.row] || 0) + actualSheets;
+                matchCount++;
+                processed = true;
+              }
+            }
+          }
+
+          // 通常照合も試行（20×30以外）
+          if (!processed) {
+            const masterRow = findMasterRow(productId, sku);
+            if (masterRow) {
+              quantities[masterRow.row] = (quantities[masterRow.row] || 0) + quantity;
+              matchCount++;
+              processed = true;
+            }
+          }
+        }
+
+        // y025_silicon_toilet: タイプ無視、カラー×サイズで合算
+        else if (productId === "y025_silicon_toilet") {
+          const color = extractValue(sku, "カラー:");
+          const size = extractValue(sku, "サイズ:");
+          if (color && size) {
+            const colorSize = color + size;
+            const masterRow = findToiletMasterRow(colorSize);
+            if (masterRow) {
+              quantities[masterRow.row] = (quantities[masterRow.row] || 0) + quantity;
+              matchCount++;
+              processed = true;
+            }
+          }
+        }
+
+        // ===== 通常照合 =====
+        if (!processed) {
+          const masterRow = findMasterRow(productId, sku);
+          if (masterRow) {
+            quantities[masterRow.row] = (quantities[masterRow.row] || 0) + quantity;
+            matchCount++;
+            processed = true;
+          }
+        }
+
+        // マッチしなかった場合は未処理に追加
+        if (!processed) {
+          // 空行商品でマスターに有効なSKUがない場合はスキップ
+          const hasValidSku = masterData.some(m => m.productId === productId && m.sku && !m.isSpecial);
+          if (hasValidSku || !emptySkuProducts.has(productId)) {
+            unmatchedData.push({
+              productId,
+              productName,
+              sku,
+              quantity,
+              reason: "マスターに該当なし"
+            });
+          }
+        }
+      }
+
+      // 3. 合計×倍率ルールの適用
+      for (const m of masterData) {
+        if (m.isSpecial && m.specialType === "multiplier") {
+          const total = productTotals[m.sourceProductId] || 0;
+          quantities[m.row] = total * m.multiplier;
+        }
+      }
+
+      // 4. 結果データ作成（マスター順）
+      resultData = masterData.map(m => ({
+        row: m.row,
+        productId: m.productId,
+        sku: m.sku,
+        quantity: quantities[m.row] || 0
+      }));
+
+      return {
+        total: salesData.length,
+        matched: matchCount,
+        unmatched: unmatchedData.length
+      };
+    }
+
+    // CSV出力（UTF-8 BOM付き）
+    function generateCSV() {
+      let csv = "商品管理番号,すべての情報,数量\n";
+
+      for (const row of resultData) {
+        const productId = row.productId || "";
+        // 改行を含む場合はダブルクォートで囲む
+        let sku = row.sku || "";
+        if (sku.includes("\n") || sku.includes(",") || sku.includes('"')) {
+          sku = '"' + sku.replace(/"/g, '""') + '"';
+        }
+        csv += `${productId},${sku},${row.quantity}\n`;
+      }
+
+      // UTF-8 BOM
+      const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+      const blob = new Blob([bom, csv], { type: "text/csv;charset=utf-8" });
+      return blob;
+    }
+
+    // ==========================================
+    // UI処理
+    // ==========================================
+
+    const uploadArea = document.getElementById("uploadArea");
+    const fileInput = document.getElementById("fileInput");
+    const fileInfo = document.getElementById("fileInfo");
+    const executeBtn = document.getElementById("executeBtn");
+    const results = document.getElementById("results");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    // ドラッグ＆ドロップ
+    uploadArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      uploadArea.classList.add("dragover");
+    });
+
+    uploadArea.addEventListener("dragleave", () => {
+      uploadArea.classList.remove("dragover");
+    });
+
+    uploadArea.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove("dragover");
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        await handleFile(files[0]);
+      }
+    });
+
+    uploadArea.addEventListener("click", () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", async (e) => {
+      if (e.target.files.length > 0) {
+        await handleFile(e.target.files[0]);
+      }
+    });
+
+    async function handleFile(file) {
+      if (!file.name.endsWith(".csv")) {
+        alert("CSVファイルを選択してください。");
+        return;
+      }
+
+      try {
+        const text = await readFileAsText(file);
+        const rows = parseCSV(text);
+
+        // ヘッダー行をスキップ
+        const header = rows[0];
+        const dataRows = rows.slice(1);
+
+        salesData = dataRows
+          .filter(row => row.length >= 4 && row[0])
+          .map(row => ({
+            productId: row[0].trim(),
+            productName: row[1] ? row[1].trim() : "",
+            sku: row[2] ? row[2].trim() : "",
+            quantity: parseInt(row[3], 10) || 0
+          }));
+
+        fileInfo.textContent = `ファイル: ${file.name} (読み込み済み: ${salesData.length}行)`;
+        fileInfo.classList.add("show");
+        executeBtn.disabled = false;
+        results.classList.remove("show");
+
+      } catch (error) {
+        console.error(error);
+        alert("ファイルの読み込みに失敗しました。");
+      }
+    }
+
+    // 集計実行
+    executeBtn.addEventListener("click", () => {
+      if (salesData.length === 0) {
+        alert("販売実績データを読み込んでください。");
+        return;
+      }
+
+      const stats = processData();
+
+      document.getElementById("totalCount").textContent = stats.total;
+      document.getElementById("matchCount").textContent = stats.matched;
+      document.getElementById("unmatchCount").textContent = stats.unmatched;
+
+      // 未処理データ表示
+      const tbody = document.getElementById("unmatchBody");
+      const noData = document.getElementById("noUnmatchData");
+      tbody.innerHTML = "";
+
+      if (unmatchedData.length > 0) {
+        noData.style.display = "none";
+        for (const item of unmatchedData) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${escapeHtml(item.productId)}</td>
+            <td>${escapeHtml(item.productName)}</td>
+            <td>${escapeHtml(item.sku)}</td>
+            <td>${item.quantity}</td>
+            <td>${escapeHtml(item.reason)}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      } else {
+        noData.style.display = "block";
+      }
+
+      results.classList.add("show");
+    });
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // CSVダウンロード
+    downloadBtn.addEventListener("click", () => {
+      const blob = generateCSV();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const now = new Date();
+      const dateStr = now.getFullYear() +
+        String(now.getMonth() + 1).padStart(2, "0") +
+        String(now.getDate()).padStart(2, "0");
+      a.download = `集計結果_${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>

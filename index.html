@@ -1037,6 +1037,7 @@
         }
 
         // y023dis_shorts: 枚数換算÷5
+        // D列の数量がそのまま合計枚数（掛け算不要）
         else if (productId === "y023dis_shorts") {
           const color = extractValue(sku, "カラー:");
           const sizeRaw = extractValue(sku, "サイズ:");
@@ -1044,8 +1045,8 @@
           const sheets = extractSheetCount(sku);
 
           if (color && size && sheets > 0) {
-            const actualSheets = quantity * sheets;
-            const packs = actualSheets / 5;
+            const totalSheets = quantity;  // D列の値がそのまま合計枚数
+            const packs = totalSheets / 5;
             const colorSize = color + " " + size;
             const masterRow = findShortsMasterRow(colorSize);
             if (masterRow) {
